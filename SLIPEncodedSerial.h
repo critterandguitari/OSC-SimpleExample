@@ -6,7 +6,8 @@
 #include "Serial.h"
 #include "UdpSocket.h"
 
-#define RX_BUF_SIZE 256
+#define RX_BUF_SIZE 1024
+#define MAX_MESSAGE_SIZE 256
 #define WAITING 1
 #define RECEIVING 2
 
@@ -22,7 +23,7 @@ public:
     
     uint8_t rstate;
 
-    uint8_t buffer[1024];
+    uint8_t buffer[1024];   
     uint32_t bufferIndex;
     uint32_t length;
 
@@ -33,7 +34,7 @@ public:
     uint32_t rxBufReadIndex;
     uint32_t rxBufWriteIndex;
    
-    uint8_t rxPacket[256];
+    uint8_t rxPacket[256]; // the received packet
     uint32_t rxPacketIndex;
 
     //SLIP specific method which begins a transmitted packet
@@ -50,8 +51,9 @@ public:
 
     int sendPacket(const uint8_t *buf, uint32_t len, Serial &s);
 
-    int recvPacket(Serial &s, UdpSocket &udpoutsock);
+    int recvPacket(Serial &s);
     
+    //int SLIPEncodedSerial::recvPacket(uint8_t * buf, uint32_t len)
 };
 
 

@@ -114,7 +114,7 @@ int main(int argc, char* argv[]) {
             //printf("\n");
         }
 
-        if(slip.recvPacket(serial, udpoutsock)) {
+        if(slip.recvPacket(serial)) {
 /*            printf("\nslip decoded: \n");
             for (i = 0; i < slip.length; i++){
                 printf("%x ", slip.buffer[i]);

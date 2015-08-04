@@ -28,11 +28,12 @@ int SLIPEncodedSerial::sendPacket(const uint8_t *buf, uint32_t len, Serial &s)
     s.writeBuffer(buffer, length);
 }
 
-int SLIPEncodedSerial::recvPacket(Serial &s, UdpSocket &udpoutsock)
+//int SLIPEncodedSerial::recvPacket(uint8_t * buf, uint32_t len)
+int SLIPEncodedSerial::recvPacket(Serial &s)
 {
     int i, len;
     
-    // fill up recv buffer
+    // fill up recv buffer from serial port
     len = s.readBuffer(serialIn, 256);
     if (len == -1) {
         //    printf("Error reading from serial port\n");
@@ -46,9 +47,14 @@ int SLIPEncodedSerial::recvPacket(Serial &s, UdpSocket &udpoutsock)
             if (rxBufWriteIndex > RX_BUF_SIZE) rxBufWriteIndex = 0;
         }
     }
+   
+    // fill rx buf
+    /*for (i = 0;  i < len; i++) {
+        rxBuf[rxBufWriteIndex++] = buf[i];
+        if (rxBufWriteIndex > RX_BUF_SIZE) rxBufWriteIndex = 0;
+    }*/
 
-
-    // process recv buffer, this might return before the whole thing
+    // process rx buffer, this might return before the whole thing
     // is proccessed,  but we'll just get it next time
     while (rxBufReadIndex != rxBufWriteIndex) {
        
@@ -69,7 +75,6 @@ int SLIPEncodedSerial::recvPacket(Serial &s, UdpSocket &udpoutsock)
             if (tmp8 == eot) {  //TODO:  exit if message len > max
                 rstate = WAITING;
                 decode(rxPacket, rxPacketIndex);
-                //udpoutsock.writeBuffer(buffer, length);
                 return 1;
             }
             else {
