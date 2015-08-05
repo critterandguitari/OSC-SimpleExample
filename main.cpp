@@ -8,13 +8,50 @@
 #include "Serial.h"
 #include "UdpSocket.h"
 #include "SLIPEncodedSerial.h"
+#include "OledScreen.h"
 
+Serial serial;
+SLIPEncodedSerial slip;
+SimpleWriter dump;
+OledScreen screen;
 
 static const uint8_t eot = 0300;
 
+void updateScreen();
+
 // example handler
 void gotone(OSCMessage &msg){
-//    printf("got a /thing/test msg \n");
+    char line[1024];
+    int len;    
+
+    if (msg.isString(0)){
+       len =  msg.getString(0, line, 1024);
+    }
+
+    line[len] = 0;
+    printf("line %s len: %d \n", line, len);
+    screen.println_16(line, len-1, 0, 0);
+    updateScreen();
+}
+
+void updateScreen(){
+    
+    uint8_t oledPage[128];
+    uint32_t i, j;
+
+    for (i=0;i<8;i++){
+        // copy 128 byte page from the screen buffer
+        for (j=0; j<128; j++){
+            oledPage[j] = screen.pix_buf[j + (i * 128)];
+        }
+        OSCMessage oledMsg("/oled");
+        oledMsg.add(i);
+        oledMsg.add(oledPage, 128);
+        oledMsg.send(dump);
+        slip.sendMessage(dump.buffer, dump.length, serial);
+        oledMsg.empty();
+        usleep(5000);
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -28,12 +65,6 @@ int main(int argc, char* argv[]) {
 
     UdpSocket udpSock(4001);
     udpSock.setDestination(4000, "localhost");
- 
-    Serial serial;
-    SLIPEncodedSerial slip;
-
-    SimpleWriter dump;
-
     OSCMessage msgIn;
     
     printf("cool\n");
@@ -49,18 +80,31 @@ int main(int argc, char* argv[]) {
     printf("\n msg is %d bytes\n", dump.length);
 
     // print it out
-    for (i = 0; i < dump.length; i++){
-        printf("%x ", dump.buffer[i]);
-    }
 
     // UDP send
-    udpSock.writeBuffer(dump.buffer, dump.length);
+//    udpSock.writeBuffer(dump.buffer, dump.length);
 
     // serial send
-    slip.sendMessage(dump.buffer, dump.length, serial);
+//    slip.sendMessage(dump.buffer, dump.length, serial);
 
-    printf("\ndone, now gonna receive\n");
+//    usleep(1000000);
+    printf("\nnow gonna send oled\n");
+    
+   // screen.put_char_arial32('O', 10, 10, 1);
+   // screen.put_char_small('E', 50, 50, 1);
+    
 
+    updateScreen();
+
+   
+    printf("to serial:   ");
+    for (i = 0; i < dump.length; i++){
+        printf ("%x ", dump.buffer[i]);
+    }
+    printf("\n");
+//    udpSock.writeBuffer(dump.buffer, dump.length);
+    
+//     for(;;);
 
     // full udp -> serial -> serial -> udp
     for (;;){
@@ -71,7 +115,7 @@ int main(int argc, char* argv[]) {
                 msgIn.fill(udpPacketIn[i]);
             }
             if(!msgIn.hasError()){
-                msgIn.dispatch("/thing/test", gotone, 0);
+                msgIn.dispatch("/oledwrite", gotone, 0);
                 // send it along
                 msgIn.send(dump);
                 slip.sendMessage(dump.buffer, dump.length, serial);
@@ -84,6 +128,11 @@ int main(int argc, char* argv[]) {
 
         // receive serial, send udp
         if(slip.recvMessage(serial)) {
+  /*          printf("from serial: ");
+            for (i = 0; i < slip.decodedLength; i++){
+                printf ("%x ", slip.decodedBuf[i]);
+            }
+            printf("\n");*/
             udpSock.writeBuffer(slip.decodedBuf, slip.decodedLength);
         }
 

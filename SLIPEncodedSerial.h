@@ -8,7 +8,7 @@
 
 #define MAX_MSG_SIZE 256 // the maximum un encoded size.  the max encoded size will be this * 2 for slip overhead
 #define SERIAL_READ_SIZE 64  // amount read from the serial port
-#define RX_BUF_SIZE 128  // should be twice as big as SERIAL_READ_SIZE
+#define RX_BUF_SIZE 1024  // should be at least twice as big as SERIAL_READ_SIZE
 #define WAITING 1
 #define RECEIVING 2
 
