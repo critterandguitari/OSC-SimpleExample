@@ -24,7 +24,8 @@ SimpleWriter dump;
 void reset(OSCMessage &msg){
 }
 
-void renumber(OSCMessage &msg){
+void gotone(OSCMessage &msg){
+    printf("got a /thing/test msg \n");
 }
 
 int main(int argc, char* argv[]) {
@@ -46,7 +47,10 @@ int main(int argc, char* argv[]) {
     //the message wants an OSC address as first argument
     OSCMessage msg("/thing/test");
     msg.add(888);
-        
+       
+
+    OSCMessage msgIn;
+
     dump.start();  
     msg.send(dump);
     dump.end();
@@ -68,8 +72,23 @@ int main(int argc, char* argv[]) {
       //  len = pd_receive_poll(osc_packet_in);
         //len = udpread(osc_packet_in);
         len = udpinsock.readBuffer(osc_packet_in, 256, 0);
-        if (len > 0)
+        if (len > 0){
             printf("received %d bytes\n", len);
-    }
 
+            for (i = 0; i < len; i++){
+                printf("%x ", osc_packet_in[i]);
+                msgIn.fill(osc_packet_in[i]);
+            }
+            if(!msgIn.hasError()){
+                printf("got a message \n");
+                
+                msgIn.dispatch("/thing/test", gotone, 0);
+            }
+            else {
+                printf("bad message");
+            }
+            msgIn.empty();
+            printf("\n");
+        }
+    }
 }
