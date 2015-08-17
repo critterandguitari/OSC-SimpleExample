@@ -10,7 +10,7 @@ void SimpleWriter::end(void){
 }
 
 void SimpleWriter::write(uint8_t b){
-    printf("%x ", b);
+//    printf("%x ", b);
 
     buffer[bufferIndex] = b;
     bufferIndex++;

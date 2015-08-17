@@ -13,8 +13,9 @@ extern "C" {
 
 #include "OSC/OSCMessage.h"
 #include "OSC/SimpleWriter.h"
-
+#include "Serial.h"
 #include "UdpSocket.h"
+#include "SLIPEncoderDecoder.h"
 
 //SLIPEncodedSerial SLIPSerial;
 
@@ -39,21 +40,22 @@ int main(int argc, char* argv[]) {
 
     UdpSocket udpinsock(4001);
     UdpSocket udpoutsock(4004);
-    
+ 
+    Serial serial;
+    SLIPEncoderDecoder slipOut;
+
     //udp_send_init();
     //pd_receive_init();
 
     printf("cool\n");
     //the message wants an OSC address as first argument
-    OSCMessage msg("/thing/test");
-    msg.add(888);
+    OSCMessage msg("/sys/renumber");
+   // msg.add(888);
        
 
     OSCMessage msgIn;
 
-    dump.start();  
     msg.send(dump);
-    dump.end();
 
     printf("\n msg is %d bytes\n", dump.bufferIndex + 1);
 
@@ -61,10 +63,19 @@ int main(int argc, char* argv[]) {
         printf("%x ", dump.buffer[i]);
     }
 
-    //udp_send_buf(dump.buffer, dump.length);
-    //pd_udp_send_buf
-    udpoutsock.setDestination(4000, "localhost");
-    udpoutsock.writeBuffer(dump.buffer, dump.length);
+    //udpoutsock.setDestination(4000, "localhost");
+    //udpoutsock.writeBuffer(dump.buffer, dump.length);
+
+    slipOut.encode(dump.buffer, dump.length);
+
+    printf("\nslip endoded: \n");
+    for (i = 0; i < slipOut.length; i++){
+        printf("%x ", slipOut.buffer[i]);
+    }
+
+
+    serial.writeBuffer(slipOut.buffer, slipOut.length);
+           //writeBuffer(void *buffer, long len);
 
     printf("\ndone, now gonna receive\n");
 

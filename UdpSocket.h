@@ -3,7 +3,6 @@
 
 #include "Socket.h"
 
-#include <string.h>
 
 //namespace stk {
 

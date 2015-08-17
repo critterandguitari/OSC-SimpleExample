@@ -394,6 +394,7 @@ OSCErrorCode OSCMessage::getError(){
  =============================================================================*/
 
 void OSCMessage::send(SimpleWriter &p){
+    p.start();  // start packet
     //don't send a message with errors
     if (hasError()){
         return;
@@ -467,6 +468,7 @@ void OSCMessage::send(SimpleWriter &p){
             p.write(ptr, datum->bytes);
         }
     }
+    p.end(); // start packet
 }
 
 /*=============================================================================
