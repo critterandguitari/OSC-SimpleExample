@@ -1,1 +1,1 @@
-g++ main.cpp OSC/OSCData.cpp OSC/OSCMatch.c OSC/OSCMessage.cpp OSC/OSCTiming.cpp OSC/SimpleWriter.cpp udp_send.c -o main
+g++ main.cpp Socket.cpp UdpSocket.cpp OSC/OSCData.cpp OSC/OSCMatch.c OSC/OSCMessage.cpp OSC/OSCTiming.cpp OSC/SimpleWriter.cpp -o main
