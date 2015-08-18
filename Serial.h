@@ -21,7 +21,7 @@ class Serial
   // destructor
   ~Serial();
 
-  int serial_fd = 0;
+  int serial_fd;
   
   // send stuff
   int writeBuffer(void *buffer, long len);

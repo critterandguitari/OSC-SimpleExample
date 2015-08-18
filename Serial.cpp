@@ -90,11 +90,15 @@ Serial::Serial()
         printf("error %d opening %s: %s", errno, "/dev/whatever", strerror (errno));
         return;
     }
-
+        /* set no wait on any operation */
+    fcntl(serial_fd, F_SETFL, FNDELAY);
+    
     printf("opened serial, setting up... \n");    
     //set_interface_attribs (serial_fd, B500000, 0);  // set speed to 115,200 bps, 8n1 (no parity)
     set_interface_attribs (serial_fd, B115200, 0);  // set speed to 115,200 bps, 8n1 (no parity)
     set_blocking (serial_fd, 0);                // set no blocking
+    // Flush the port's buffers (in and out) before we start using it
+    tcflush(serial_fd, TCIOFLUSH);
     printf("done opening serial \n");    
 
 }
@@ -114,7 +118,7 @@ int Serial::writeBuffer(void *buffer, long len)
   // receive stuff
 int Serial::readBuffer(void *buffer, long bufferSize)
 {
-    return read(serial_fd, buffer, 256);//sizeof(buffer));
+    return read(serial_fd, buffer, bufferSize);//sizeof(buffer));
 }
 
 
