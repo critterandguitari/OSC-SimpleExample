@@ -84,7 +84,8 @@ Serial::Serial()
     //char *portname = "/dev/ttymxc0";
     //char *portname = "/dev/tty.usbserial-A30013Jp";
     //serial_fd = open (portname, O_RDWR | O_NOCTTY | O_SYNC);
-    serial_fd = open("/dev/tty.usbserial-A30013Jp", O_RDWR | O_NOCTTY | O_NDELAY);
+    //serial_fd = open("/dev/tty.usbserial-A30013Jp", O_RDWR | O_NOCTTY | O_NDELAY);
+    serial_fd = open("/dev/ttymxc0", O_RDWR | O_NOCTTY | O_NDELAY);
     if (serial_fd < 0)
     {
         printf("error %d opening %s: %s", errno, "/dev/whatever", strerror (errno));
@@ -94,8 +95,8 @@ Serial::Serial()
     fcntl(serial_fd, F_SETFL, FNDELAY);
     
     printf("opened serial, setting up... \n");    
-    //set_interface_attribs (serial_fd, B500000, 0);  // set speed to 115,200 bps, 8n1 (no parity)
-    set_interface_attribs (serial_fd, B115200, 0);  // set speed to 115,200 bps, 8n1 (no parity)
+    set_interface_attribs (serial_fd, B500000, 0);  // set speed to 115,200 bps, 8n1 (no parity)
+    //set_interface_attribs (serial_fd, B115200, 0);  // set speed to 115,200 bps, 8n1 (no parity)
     set_blocking (serial_fd, 0);                // set no blocking
     // Flush the port's buffers (in and out) before we start using it
     tcflush(serial_fd, TCIOFLUSH);

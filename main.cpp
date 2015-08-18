@@ -1,6 +1,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "OSC/OSCMessage.h"
 #include "OSC/SimpleWriter.h"
@@ -19,7 +20,7 @@ void reset(OSCMessage &msg){
 }
 
 void gotone(OSCMessage &msg){
-    printf("got a /thing/test msg \n");
+//    printf("got a /thing/test msg \n");
 }
 
 int main(int argc, char* argv[]) {
@@ -28,7 +29,7 @@ int main(int argc, char* argv[]) {
     char osc_packet_in[256];
     //uint8_t osc_packet_in[256];
     uint8_t i = 0;
-    uint32_t len = 0;
+    int len = 0;
 
 
     UdpSocket udpinsock(4001);
@@ -70,10 +71,10 @@ int main(int argc, char* argv[]) {
         printf("%x ", slipOut.buffer[i]);
     }*/
 
-    msg.setAddress("/sys/ready");
+    msg.setAddress("/sys/renumber");
     msg.send(dump);
     slip.sendPacket(dump.buffer, dump.length, serial);
-    slip.sendPacket(dump.buffer, dump.length, serial);
+    //slip.sendPacket(dump.buffer, dump.length, serial);
     //slip.encode(dump.buffer, dump.length);
     //serial.writeBuffer(slip.buffer, slip.length);
     //serial.writeBuffer(slip.buffer, slip.length);
@@ -91,33 +92,36 @@ int main(int argc, char* argv[]) {
 
     for (;;){
         // upd recive
-        /*len = udpinsock.readBuffer(osc_packet_in, 256, 0);
+        len = udpinsock.readBuffer(osc_packet_in, 256, 0);
         if (len > 0){
-            printf("received %d bytes\n", len);
+ //           printf("received %d bytes\n", len);
 
             for (i = 0; i < len; i++){
-                printf("%x ", osc_packet_in[i]);
+                //printf("%x ", osc_packet_in[i]);
                 msgIn.fill(osc_packet_in[i]);
             }
             if(!msgIn.hasError()){
-                printf("got a message \n");
-                
+             //   printf("got a message \n");
                 msgIn.dispatch("/thing/test", gotone, 0);
+                // send it along
+                msgIn.send(dump);
+                slip.sendPacket(dump.buffer, dump.length, serial);
             }
             else {
                 printf("bad message");
             }
             msgIn.empty();
-            printf("\n");
-        }*/
+            //printf("\n");
+        }
 
         if(slip.recvPacket(serial, udpoutsock)) {
-            printf("\nslip decoded: \n");
+/*            printf("\nslip decoded: \n");
             for (i = 0; i < slip.length; i++){
                 printf("%x ", slip.buffer[i]);
-            }
+            }*/
             udpoutsock.writeBuffer(slip.buffer, slip.length);
 
         }
+        usleep(1000);
     } // for;;
 }

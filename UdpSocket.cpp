@@ -54,6 +54,10 @@ UdpSocket :: UdpSocket(int port )
   address.sin_addr.s_addr = INADDR_ANY;
   address.sin_port = htons( port );
 
+  int flags = fcntl(soket_, F_GETFL);
+  flags |= O_NONBLOCK;
+  fcntl(soket_, F_SETFL, flags);
+
   // Bind socket to the appropriate port and interface (INADDR_ANY)
   if ( bind(soket_, (struct sockaddr *)&address, sizeof(address)) < 0 ) {
     std::cout << "UdpSocket: Couldn't bind socket in constructor!";
