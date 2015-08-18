@@ -25,6 +25,7 @@ public:
 	void encode(uint8_t b);
     // void write(const uint8_t *buffer, size_t size);
     void encode(const uint8_t *buffer, int size);
+    void decode(const uint8_t *buffer, int size);
 
 };
 

@@ -31,6 +31,27 @@ void SLIPEncoderDecoder::encode(const uint8_t *buf, int size)
     endPacket();
 }
 
+void SLIPEncoderDecoder::decode(const uint8_t *buf, int size)
+{
+    int i;
+    bufferIndex = 0;
+    i = 0;
+
+    while (i < size) {
+        if (buf[i] == slipesc) {  // TODO error out here if slipescend or slipescesc doesn't follow slipesc
+            i++;
+            if (buf[i] == slipescend) buffer[bufferIndex++] = eot;
+            if (buf[i] == slipescesc) buffer[bufferIndex++] = slipesc;
+            i++;
+        }
+        else {
+            buffer[bufferIndex++] = buf[i];
+            i++;
+        }
+    }
+    length = bufferIndex;
+}
+
 
 //SLIP specific method which begins a transmitted packet
 void SLIPEncoderDecoder::beginPacket() {

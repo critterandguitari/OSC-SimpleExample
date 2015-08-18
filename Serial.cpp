@@ -13,10 +13,10 @@
 #include <sys/wait.h>   /* Wait for Process Termination */
 #include <dirent.h>
 #include <termios.h>
-#include <termio.h>
+//#include <termio.h>
 #include <fcntl.h>
 #include <err.h>
-#include <linux/serial.h>
+//#include <linux/serial.h>
 
 
 
@@ -81,18 +81,21 @@ Serial::Serial()
 {
     // Open serial port   
     printf ("opening serial .....\n");
-    char *portname = "/dev/ttymxc0";
-    serial_fd = open (portname, O_RDWR | O_NOCTTY | O_SYNC);
+    //char *portname = "/dev/ttymxc0";
+    //char *portname = "/dev/tty.usbserial-A30013Jp";
+    //serial_fd = open (portname, O_RDWR | O_NOCTTY | O_SYNC);
+    serial_fd = open("/dev/tty.usbserial-A30013Jp", O_RDWR | O_NOCTTY | O_NDELAY);
     if (serial_fd < 0)
     {
-        printf("error %d opening %s: %s", errno, portname, strerror (errno));
+        printf("error %d opening %s: %s", errno, "/dev/whatever", strerror (errno));
         return;
     }
 
-    set_interface_attribs (serial_fd, B500000, 0);  // set speed to 115,200 bps, 8n1 (no parity)
-    //set_interface_attribs (serial_fd, B115200, 0);  // set speed to 115,200 bps, 8n1 (no parity)
+    printf("opened serial, setting up... \n");    
+    //set_interface_attribs (serial_fd, B500000, 0);  // set speed to 115,200 bps, 8n1 (no parity)
+    set_interface_attribs (serial_fd, B115200, 0);  // set speed to 115,200 bps, 8n1 (no parity)
     set_blocking (serial_fd, 0);                // set no blocking
-    printf("opened serial \n");    
+    printf("done opening serial \n");    
 
 }
 

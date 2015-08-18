@@ -2,24 +2,22 @@
 #include <stdint.h>
 #include <stdio.h>
 
-
-
-extern "C" {
-//#include "uart.h"
-//#include "stm32f0xx.h"
-//#include "Timer.h"
-//#include "BlinkLed.h"
-}
-
 #include "OSC/OSCMessage.h"
 #include "OSC/SimpleWriter.h"
 #include "Serial.h"
 #include "UdpSocket.h"
 #include "SLIPEncoderDecoder.h"
 
-//SLIPEncodedSerial SLIPSerial;
 
-SimpleWriter dump;
+// message io stuff
+#define WAITING 1
+#define RECEIVING 2
+
+uint8_t rstate = WAITING;
+static const uint8_t eot = 0300;
+
+
+
 
 // reset to default turn on state
 void reset(OSCMessage &msg){
@@ -43,17 +41,22 @@ int main(int argc, char* argv[]) {
  
     Serial serial;
     SLIPEncoderDecoder slipOut;
+    SLIPEncoderDecoder slipIn;
+
+    SimpleWriter dump;
+    
+    SimpleWriter serialOSCIn;
 
     //udp_send_init();
     //pd_receive_init();
 
+    OSCMessage msgIn;
+    
     printf("cool\n");
     //the message wants an OSC address as first argument
     OSCMessage msg("/sys/renumber");
-   // msg.add(888);
+    // msg.add(888);
        
-
-    OSCMessage msgIn;
 
     msg.send(dump);
 
@@ -63,7 +66,7 @@ int main(int argc, char* argv[]) {
         printf("%x ", dump.buffer[i]);
     }
 
-    //udpoutsock.setDestination(4000, "localhost");
+    udpoutsock.setDestination(4000, "localhost");
     //udpoutsock.writeBuffer(dump.buffer, dump.length);
 
     slipOut.encode(dump.buffer, dump.length);
@@ -74,15 +77,26 @@ int main(int argc, char* argv[]) {
     }
 
 
-    serial.writeBuffer(slipOut.buffer, slipOut.length);
+    //serial.writeBuffer(slipOut.buffer, slipOut.length);
            //writeBuffer(void *buffer, long len);
+    
+
+    msg.setAddress("/sys/ready");
+    msg.send(dump);
+    slipOut.encode(dump.buffer, dump.length);
+    serial.writeBuffer(slipOut.buffer, slipOut.length);
+
+    msg.setAddress("/sys/renumber");
+    msg.send(dump);
+    slipOut.encode(dump.buffer, dump.length);
+    serial.writeBuffer(slipOut.buffer, slipOut.length);
+
 
     printf("\ndone, now gonna receive\n");
 
     for (;;){
-      //  len = pd_receive_poll(osc_packet_in);
-        //len = udpread(osc_packet_in);
-        len = udpinsock.readBuffer(osc_packet_in, 256, 0);
+        // upd recive
+        /*len = udpinsock.readBuffer(osc_packet_in, 256, 0);
         if (len > 0){
             printf("received %d bytes\n", len);
 
@@ -100,6 +114,51 @@ int main(int argc, char* argv[]) {
             }
             msgIn.empty();
             printf("\n");
+        }*/
+
+        len = serial.readBuffer(osc_packet_in, 256);
+        if (len == -1) {
+            //    printf("Error reading from serial port\n");
         }
-    }
+        else if (len == 0) {
+            //printf("No more data\n");
+        }
+        else
+        {
+            for (i = 0; i < len; i++) {
+               
+                uint8_t tmp8 = osc_packet_in[i];
+            
+                if (rstate == WAITING) {
+                    if (tmp8 == eot) rstate = WAITING; // just keep waiting for something afer EOT
+                    else {
+                        serialOSCIn.start();
+                        serialOSCIn.write(tmp8);
+                        rstate = RECEIVING;
+                    }
+                } // waiting
+                else if (rstate == RECEIVING){
+                    if (tmp8 == eot) {  //TODO:  exit if message len > max
+                        serialOSCIn.end();
+                        printf("got a packet\n");
+                        slipIn.decode(serialOSCIn.buffer, serialOSCIn.length);
+                        udpoutsock.writeBuffer(slipIn.buffer, slipIn.length);
+                        rstate = WAITING;
+                    }
+                    else {
+                        serialOSCIn.write(tmp8);
+                        rstate = RECEIVING;
+                        /*encoded_in_index++;
+                        if (encoded_in_index > (MAX_MESSAGE_SIZE - 1)){  // drop packet if it gets too large
+                            rstate = WAITING;
+                        }
+                        else {
+                            encoded_in[encoded_in_index] = tmp8;
+                            rstate = RECEIVING;
+                        }*/
+                    }
+                } //receiving
+            } // gettin bytes
+        } // bytes available
+    } // for;;
 }
