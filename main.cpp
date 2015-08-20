@@ -12,13 +12,7 @@
 
 static const uint8_t eot = 0300;
 
-
-
-
-// reset to default turn on state
-void reset(OSCMessage &msg){
-}
-
+// example handler
 void gotone(OSCMessage &msg){
 //    printf("got a /thing/test msg \n");
 }
@@ -26,102 +20,74 @@ void gotone(OSCMessage &msg){
 int main(int argc, char* argv[]) {
       
     uint32_t seconds = 0;
-    char osc_packet_in[256];
+    char udpPacketIn[256];
     //uint8_t osc_packet_in[256];
     uint8_t i = 0;
     int len = 0;
 
 
-    UdpSocket udpinsock(4001);
-    UdpSocket udpoutsock(4004);
+    UdpSocket udpSock(4001);
+    udpSock.setDestination(4000, "localhost");
  
     Serial serial;
     SLIPEncodedSerial slip;
 
     SimpleWriter dump;
-    
-    SimpleWriter serialOSCIn;
-
 
     OSCMessage msgIn;
     
     printf("cool\n");
-    //the message wants an OSC address as first argument
+
+    // make an osc object
+    // the message wants an OSC address as first argument
     OSCMessage msg("/sys/renumber");
     // msg.add(888);
        
-
+    // this just dumps it into the simple writer dump
     msg.send(dump);
 
-    printf("\n msg is %d bytes\n", dump.bufferIndex + 1);
+    printf("\n msg is %d bytes\n", dump.length);
 
+    // print it out
     for (i = 0; i < dump.length; i++){
         printf("%x ", dump.buffer[i]);
     }
 
     // UDP send
-    udpoutsock.setDestination(4000, "localhost");
-    udpoutsock.writeBuffer(dump.buffer, dump.length);
+    udpSock.writeBuffer(dump.buffer, dump.length);
 
-
-    /* test slip encoding
-    //slipOut.encode(dump.buffer, dump.length);
-    printf("\nslip endoded: \n");
-    for (i = 0; i < slipOut.length; i++){
-        printf("%x ", slipOut.buffer[i]);
-    }*/
-
-    msg.setAddress("/sys/renumber");
-    msg.send(dump);
-    slip.sendPacket(dump.buffer, dump.length, serial);
-    //slip.sendPacket(dump.buffer, dump.length, serial);
-    //slip.encode(dump.buffer, dump.length);
-    //serial.writeBuffer(slip.buffer, slip.length);
-    //serial.writeBuffer(slip.buffer, slip.length);
-
-
-/*
-    msg.setAddress("/sys/renumber");
-    msg.send(dump);
-    slip.encode(dump.buffer, dump.length);
-    serial.writeBuffer(slip.buffer, slip.length);
-*/
+    // serial send
+    slip.sendMessage(dump.buffer, dump.length, serial);
 
     printf("\ndone, now gonna receive\n");
 
 
+    // full udp -> serial -> serial -> udp
     for (;;){
-        // upd recive
-        len = udpinsock.readBuffer(osc_packet_in, 256, 0);
+        // receive udp, send to serial
+        len = udpSock.readBuffer(udpPacketIn, 256, 0);
         if (len > 0){
- //           printf("received %d bytes\n", len);
-
             for (i = 0; i < len; i++){
-                //printf("%x ", osc_packet_in[i]);
-                msgIn.fill(osc_packet_in[i]);
+                msgIn.fill(udpPacketIn[i]);
             }
             if(!msgIn.hasError()){
-             //   printf("got a message \n");
                 msgIn.dispatch("/thing/test", gotone, 0);
                 // send it along
                 msgIn.send(dump);
-                slip.sendPacket(dump.buffer, dump.length, serial);
+                slip.sendMessage(dump.buffer, dump.length, serial);
             }
             else {
                 printf("bad message");
             }
             msgIn.empty();
-            //printf("\n");
+        }   
+
+        // receive serial, send udp
+        if(slip.recvMessage(serial)) {
+            udpSock.writeBuffer(slip.decodedBuf, slip.decodedLength);
         }
 
-        if(slip.recvPacket(serial)) {
-/*            printf("\nslip decoded: \n");
-            for (i = 0; i < slip.length; i++){
-                printf("%x ", slip.buffer[i]);
-            }*/
-            udpoutsock.writeBuffer(slip.buffer, slip.length);
-
-        }
+        // sleep for 1ms
         usleep(1000);
     } // for;;
 }

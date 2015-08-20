@@ -5,15 +5,12 @@
  */
 SLIPEncodedSerial::SLIPEncodedSerial()
 {
-
-
     rstate = WAITING;
-
-    rxBufReadIndex = 0;
-    rxBufWriteIndex = 0;
+    rxBufHead = 0;
+    rxBufTail = 0;
     rxPacketIndex = 0;
-
-
+    encodedBufIndex = 0;
+    decodedBufIndex = 0;
 }
 
 static const uint8_t eot = 0300;
@@ -22,19 +19,19 @@ static const uint8_t slipescend = 0334;
 static const uint8_t slipescesc = 0335;
 
 
-int SLIPEncodedSerial::sendPacket(const uint8_t *buf, uint32_t len, Serial &s)
+int SLIPEncodedSerial::sendMessage(const uint8_t *buf, uint32_t len, Serial &s)
 {
     encode(buf, len);
-    s.writeBuffer(buffer, length);
+    s.writeBuffer(encodedBuf, encodedLength);
 }
 
 //int SLIPEncodedSerial::recvPacket(uint8_t * buf, uint32_t len)
-int SLIPEncodedSerial::recvPacket(Serial &s)
+int SLIPEncodedSerial::recvMessage(Serial &s)
 {
     int i, len;
     
     // fill up recv buffer from serial port
-    len = s.readBuffer(serialIn, 256);
+    len = s.readBuffer(serialIn, SERIAL_READ_SIZE);
     if (len == -1) {
         //    printf("Error reading from serial port\n");
     }
@@ -43,23 +40,17 @@ int SLIPEncodedSerial::recvPacket(Serial &s)
     }
     else {
         for (i = 0;  i < len; i++) {
-            rxBuf[rxBufWriteIndex++] = serialIn[i];
-            if (rxBufWriteIndex > RX_BUF_SIZE) rxBufWriteIndex = 0;
+            rxBuf[rxBufHead++] = serialIn[i];
+            if (rxBufHead >= (RX_BUF_SIZE - 1)) rxBufHead = 0;
         }
     }
    
-    // fill rx buf
-    /*for (i = 0;  i < len; i++) {
-        rxBuf[rxBufWriteIndex++] = buf[i];
-        if (rxBufWriteIndex > RX_BUF_SIZE) rxBufWriteIndex = 0;
-    }*/
-
     // process rx buffer, this might return before the whole thing
     // is proccessed,  but we'll just get it next time
-    while (rxBufReadIndex != rxBufWriteIndex) {
+    while (rxBufTail != rxBufHead) {
        
-       uint8_t tmp8 = rxBuf[rxBufReadIndex++];
-        if (rxBufReadIndex > RX_BUF_SIZE) rxBufReadIndex = 0;
+       uint8_t tmp8 = rxBuf[rxBufTail++];
+        if (rxBufTail >= (RX_BUF_SIZE - 1)) rxBufTail = 0;
     
       //  uint8_t tmp8 = serialIn[i];
         
@@ -83,20 +74,19 @@ int SLIPEncodedSerial::recvPacket(Serial &s)
             }
         } //receiving
     } // gettin bytes
-
     return 0;
 }
  
-//encode SLIP
+//encode SLIP, put it in the encoded buffer
 void SLIPEncodedSerial::encode(uint8_t b){
     if(b == eot){
-        buffer[bufferIndex++] = slipesc;
-        buffer[bufferIndex++] = slipescend;
+        encodedBuf[encodedBufIndex++] = slipesc;
+        encodedBuf[encodedBufIndex++] = slipescend;
     } else if(b==slipesc) {
-        buffer[bufferIndex++] = slipesc;
-        buffer[bufferIndex++] = slipescesc;
+        encodedBuf[encodedBufIndex++] = slipesc;
+        encodedBuf[encodedBufIndex++] = slipescesc;
    } else {
-        buffer[bufferIndex++] = b;
+        encodedBuf[encodedBufIndex++] = b;
     }
 }
 
@@ -107,39 +97,38 @@ void SLIPEncodedSerial::encode(const uint8_t *buf, int size)
     endPacket();
 }
 
+// decode SLIP, put it in the decoded buffer
 void SLIPEncodedSerial::decode(const uint8_t *buf, int size)
 {
     int i;
-    bufferIndex = 0;
+    decodedBufIndex = 0;
     i = 0;
 
     while (i < size) {
         if (buf[i] == slipesc) {  // TODO error out here if slipescend or slipescesc doesn't follow slipesc
             i++;
-            if (buf[i] == slipescend) buffer[bufferIndex++] = eot;
-            if (buf[i] == slipescesc) buffer[bufferIndex++] = slipesc;
+            if (buf[i] == slipescend) decodedBuf[decodedBufIndex++] = eot;
+            if (buf[i] == slipescesc) decodedBuf[decodedBufIndex++] = slipesc;
             i++;
         }
         else {
-            buffer[bufferIndex++] = buf[i];
+            decodedBuf[decodedBufIndex++] = buf[i];
             i++;
         }
     }
-    length = bufferIndex;
+    decodedLength = decodedBufIndex;
 }
-
 
 //SLIP specific method which begins a transmitted packet
 void SLIPEncodedSerial::beginPacket() {
-    bufferIndex = 0;
-    buffer[bufferIndex] = eot;
-    bufferIndex++;
+    encodedBufIndex = 0;
+    encodedBuf[encodedBufIndex++] = eot;
 }
 
 //signify the end of the packet with an EOT
 void SLIPEncodedSerial::endPacket(){
-    buffer[bufferIndex] = eot;
-    length = bufferIndex + 1;
+    encodedBuf[encodedBufIndex++] = eot;
+    encodedLength = encodedBufIndex;
 }
 
 

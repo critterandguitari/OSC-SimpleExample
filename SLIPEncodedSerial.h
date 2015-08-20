@@ -7,7 +7,8 @@
 #include "UdpSocket.h"
 
 #define MAX_MSG_SIZE 256 // the maximum un encoded size.  the max encoded size will be this * 2 for slip overhead
-#define SERIAL_READ_SIZE 64
+#define SERIAL_READ_SIZE 64  // amount read from the serial port
+#define RX_BUF_SIZE 128  // should be twice as big as SERIAL_READ_SIZE
 #define WAITING 1
 #define RECEIVING 2
 
@@ -22,25 +23,24 @@ public:
     
     uint8_t rstate;
 
-    // incoming encoded message
-    uint8_t encodedInBuf[MAX_MSG_SIZE * 2];    // the encoded can be up to 2 * longer
-    uint32_t encodedInBufIndex;
-    uint32_t encodedInLength;
+    // encoded message
+    uint8_t encodedBuf[MAX_MSG_SIZE * 2];    // the encoded can be up to 2 * longer
+    uint32_t encodedBufIndex;
+    uint32_t encodedLength;
 
-    // incoming message decoded
-    uint8_t decodedInBuf[MAX_MSG_SIZE];
-    uint32_t decodedInBufIndex;
-    uint32_t decodedInLength;
-
-    // outgoing encoded message
-    uint8_t encodedOutBuf[MAX_MSG_SIZE * 2];    // the encoded can be up to 2 * longer
-    uint32_t encodedOutBufIndex;
-    uint32_t encodedOutLength;
+    // decoded message
+    uint8_t decodedBuf[MAX_MSG_SIZE];
+    uint32_t decodedBufIndex;
+    uint32_t decodedLength;
 
     uint8_t serialIn[SERIAL_READ_SIZE]; // for reading from serial port, read in 64 byte chunks
-    uint8_t rxBuf[SERIAL_READ_SIZE * 2];  // circular buffer for incoming serial, should be 2 times serail read size
-    uint32_t rxBufHeadx;
+    uint8_t rxBuf[RX_BUF_SIZE];  // circular buffer for incoming serial, should be 2 times serail read size
+    uint32_t rxBufHead;
     uint32_t rxBufTail;
+
+    uint8_t rxPacket[MAX_MSG_SIZE * 2];
+    uint32_t rxPacketIndex;
+    
 
     //SLIP specific method which begins a transmitted packet
 	void beginPacket();
@@ -53,9 +53,9 @@ public:
     
     void decode(const uint8_t *buf, int size);
 
-    int sendPacket(const uint8_t *buf, uint32_t len, Serial &s);
+    int sendMessage(const uint8_t *buf, uint32_t len, Serial &s);
 
-    int recvPacket(Serial &s, UdpSocket &udpoutsock);
+    int recvMessage(Serial &s);
     
 };
 
