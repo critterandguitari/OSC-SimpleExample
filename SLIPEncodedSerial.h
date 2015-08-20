@@ -6,11 +6,10 @@
 #include "Serial.h"
 #include "UdpSocket.h"
 
-#define RX_BUF_SIZE 1024
-#define MAX_MESSAGE_SIZE 256
+#define MAX_MSG_SIZE 256 // the maximum un encoded size.  the max encoded size will be this * 2 for slip overhead
+#define SERIAL_READ_SIZE 64
 #define WAITING 1
 #define RECEIVING 2
-
 
 class SLIPEncodedSerial
 {
@@ -23,26 +22,31 @@ public:
     
     uint8_t rstate;
 
-    uint8_t buffer[1024];   
-    uint32_t bufferIndex;
-    uint32_t length;
+    // incoming encoded message
+    uint8_t encodedInBuf[MAX_MSG_SIZE * 2];    // the encoded can be up to 2 * longer
+    uint32_t encodedInBufIndex;
+    uint32_t encodedInLength;
 
+    // incoming message decoded
+    uint8_t decodedInBuf[MAX_MSG_SIZE];
+    uint32_t decodedInBufIndex;
+    uint32_t decodedInLength;
 
-    uint8_t serialIn[256]; // for reading from serial port
+    // outgoing encoded message
+    uint8_t encodedOutBuf[MAX_MSG_SIZE * 2];    // the encoded can be up to 2 * longer
+    uint32_t encodedOutBufIndex;
+    uint32_t encodedOutLength;
 
-    uint8_t rxBuf[RX_BUF_SIZE + 2];  // circular buffer for incoming serial
-    uint32_t rxBufReadIndex;
-    uint32_t rxBufWriteIndex;
-   
-    uint8_t rxPacket[256]; // the received packet
-    uint32_t rxPacketIndex;
+    uint8_t serialIn[SERIAL_READ_SIZE]; // for reading from serial port, read in 64 byte chunks
+    uint8_t rxBuf[SERIAL_READ_SIZE * 2];  // circular buffer for incoming serial, should be 2 times serail read size
+    uint32_t rxBufHeadx;
+    uint32_t rxBufTail;
 
     //SLIP specific method which begins a transmitted packet
 	void beginPacket();
 	
 	//SLIP specific method which ends a transmittedpacket
 	void endPacket();
-	
    
     void encode(const uint8_t *buf, int size);
 	void encode(uint8_t b);
@@ -51,9 +55,8 @@ public:
 
     int sendPacket(const uint8_t *buf, uint32_t len, Serial &s);
 
-    int recvPacket(Serial &s);
+    int recvPacket(Serial &s, UdpSocket &udpoutsock);
     
-    //int SLIPEncodedSerial::recvPacket(uint8_t * buf, uint32_t len)
 };
 
 
